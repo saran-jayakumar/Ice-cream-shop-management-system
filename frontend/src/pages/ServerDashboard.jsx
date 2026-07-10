@@ -23,8 +23,8 @@ const ServerDashboard = () => {
   const [orderItems, setOrderItems] = useState({}); // Mapping: flavourId -> quantity
 
   // Fetch initial data
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const tableData = await orderService.getAllTables();
       setTables(tableData);
@@ -35,14 +35,20 @@ const ServerDashboard = () => {
       const ordersData = await orderService.getAllOrders();
       setOrders(ordersData);
     } catch (err) {
-      showToast('Error loading server menu data', 'error');
+      if (showSpinner) {
+        showToast('Error loading server menu data', 'error');
+      }
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
+    const interval = setInterval(() => {
+      loadData(false);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   // Open Order Modal for a Table

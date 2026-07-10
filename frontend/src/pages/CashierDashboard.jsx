@@ -22,8 +22,8 @@ const CashierDashboard = () => {
   const [billSearch, setBillSearch] = useState('');
 
   // Fetch initial data
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const orders = await orderService.getPendingOrders();
       setPendingOrders(orders);
@@ -31,14 +31,20 @@ const CashierDashboard = () => {
       const generatedBills = await billService.getAllBills();
       setBills(generatedBills);
     } catch (err) {
-      showToast('Error loading cashier data', 'error');
+      if (showSpinner) {
+        showToast('Error loading cashier data', 'error');
+      }
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
+    const interval = setInterval(() => {
+      loadData(false);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   // Action: Generate Bill for a pending table order

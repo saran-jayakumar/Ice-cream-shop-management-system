@@ -73,8 +73,8 @@ const OwnerDashboard = () => {
   const [billSearch, setBillSearch] = useState('');
 
   // Fetch initial data
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const statsData = await billService.getReports();
       setStats(statsData);
@@ -91,14 +91,20 @@ const OwnerDashboard = () => {
       const orderData = await orderService.getAllOrders();
       setOrders(orderData);
     } catch (err) {
-      showToast('Error loading shop data', 'error');
+      if (showSpinner) {
+        showToast('Error loading shop data', 'error');
+      }
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
+    const interval = setInterval(() => {
+      loadData(false);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   // CRUD Employee actions
