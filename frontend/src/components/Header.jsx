@@ -287,7 +287,7 @@ const Header = ({ title }) => {
                   </div>
                 </div>
 
-                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                 <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <button 
                     type="button" 
                     className="btn btn-primary" 
@@ -295,24 +295,6 @@ const Header = ({ title }) => {
                     onClick={() => setShowProfileModal(false)}
                   >
                     Close Profile
-                  </button>
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    onClick={handleDeleteAccount}
-                    style={{ 
-                      width: '100%', 
-                      background: 'rgba(239, 83, 80, 0.1)', 
-                      color: '#ef5350', 
-                      border: '1px solid rgba(239, 83, 80, 0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    <Trash2 size={16} />
-                    <span>Delete Account</span>
                   </button>
                 </div>
               </div>
