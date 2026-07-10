@@ -12,7 +12,7 @@ import { authService } from '../services/authService';
 const DefaultRedirect = () => {
   const user = authService.getCurrentUser();
   if (!user) {
-    return <Navigate to="/create-account" replace />;
+    return <Navigate to="/login" replace />;
   }
   switch (user.role) {
     case 'OWNER':
@@ -24,7 +24,7 @@ const DefaultRedirect = () => {
     case 'SERVER':
       return <Navigate to="/server-dashboard" replace />;
     default:
-      return <Navigate to="/create-account" replace />;
+      return <Navigate to="/login" replace />;
   }
 };
 

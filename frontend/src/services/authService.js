@@ -4,8 +4,8 @@ export const authService = {
   login: async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
     if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify({
+      sessionStorage.setItem('token', response.data.token);
+      sessionStorage.setItem('user', JSON.stringify({
         email: response.data.email,
         name: response.data.name,
         role: response.data.role
@@ -21,29 +21,29 @@ export const authService = {
 
   deleteAccount: async () => {
     const response = await api.delete('/auth/delete');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     return response.data;
   },
 
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
   },
 
   updateProfile: async (name, password) => {
     const response = await api.put('/auth/profile', { name, password });
-    const userStr = localStorage.getItem('user');
+    const userStr = sessionStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
       if (name) user.name = name;
-      localStorage.setItem('user', JSON.stringify(user));
+      sessionStorage.setItem('user', JSON.stringify(user));
     }
     return response.data;
   },
 
   getCurrentUser: () => {
-    const userStr = localStorage.getItem('user');
+    const userStr = sessionStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   },
 
@@ -53,6 +53,7 @@ export const authService = {
   },
 
   isAuthenticated: () => {
-    return !!localStorage.getItem('token');
+    return !!sessionStorage.getItem('token');
   }
 };
+
