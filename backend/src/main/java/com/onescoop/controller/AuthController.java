@@ -8,10 +8,14 @@ import com.onescoop.entity.User;
 import com.onescoop.entity.UserRole;
 import com.onescoop.entity.Flavour;
 import com.onescoop.entity.IceCreamTable;
+import com.onescoop.entity.Bill;
+import com.onescoop.entity.Order;
 import com.onescoop.repository.EmployeeRepository;
 import com.onescoop.repository.UserRepository;
 import com.onescoop.repository.FlavourRepository;
 import com.onescoop.repository.IceCreamTableRepository;
+import com.onescoop.repository.OrderRepository;
+import com.onescoop.repository.BillRepository;
 import com.onescoop.security.JwtTokenProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,6 +23,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -32,6 +37,8 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final FlavourRepository flavourRepository;
     private final IceCreamTableRepository tableRepository;
+    private final OrderRepository orderRepository;
+    private final BillRepository billRepository;
 
     public AuthController(AuthenticationManager authenticationManager,
                           JwtTokenProvider tokenProvider,
@@ -39,7 +46,9 @@ public class AuthController {
                           EmployeeRepository employeeRepository,
                           PasswordEncoder passwordEncoder,
                           FlavourRepository flavourRepository,
-                          IceCreamTableRepository tableRepository) {
+                          IceCreamTableRepository tableRepository,
+                          OrderRepository orderRepository,
+                          BillRepository billRepository) {
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
         this.userRepository = userRepository;
@@ -47,6 +56,8 @@ public class AuthController {
         this.passwordEncoder = passwordEncoder;
         this.flavourRepository = flavourRepository;
         this.tableRepository = tableRepository;
+        this.orderRepository = orderRepository;
+        this.billRepository = billRepository;
     }
 
     @PostMapping("/login")
@@ -196,5 +207,57 @@ public class AuthController {
         } catch (Exception ex) {
             return ResponseEntity.ok("Error: " + ex.getMessage());
         }
+    }
+
+    @DeleteMapping("/delete")
+    @Transactional
+    public ResponseEntity<?> deleteAccount(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).body("Error: Not authenticated");
+        }
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getRole() == UserRole.OWNER) {
+            Long ownerId = user.getId();
+
+            // 1. Delete all bills
+            java.util.List<Bill> bills = billRepository.findByOwnerId(ownerId);
+            billRepository.deleteAll(bills);
+
+            // 2. Delete all orders
+            java.util.List<Order> orders = orderRepository.findByOwnerId(ownerId);
+            orderRepository.deleteAll(orders);
+
+            // 3. Delete all flavours
+            java.util.List<Flavour> flavours = flavourRepository.findByOwnerId(ownerId);
+            flavourRepository.deleteAll(flavours);
+
+            // 4. Delete all tables
+            java.util.List<IceCreamTable> tables = tableRepository.findByOwnerId(ownerId);
+            tableRepository.deleteAll(tables);
+
+            // 5. Delete all employees (cascades to their User accounts)
+            java.util.List<Employee> employees = employeeRepository.findByOwnerId(ownerId);
+            employeeRepository.deleteAll(employees);
+
+            // 6. Delete the owner user
+            userRepository.delete(user);
+        } else {
+            Employee employee = employeeRepository.findByUser(user)
+                    .orElseThrow(() -> new RuntimeException("Employee record not found"));
+
+            // Re-assign orders served by this employee to the owner to avoid foreign key violations
+            java.util.List<Order> servedOrders = orderRepository.findByServerId(user.getId());
+            for (Order order : servedOrders) {
+                order.setServer(employee.getOwner());
+                orderRepository.save(order);
+            }
+
+            employeeRepository.delete(employee);
+        }
+
+        return ResponseEntity.ok().body("Account and all associated data deleted successfully!");
     }
 }

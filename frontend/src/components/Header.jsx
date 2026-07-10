@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { useToast } from '../hooks/useToast';
-import { User, Sun, Moon, LogOut, Eye, EyeOff, X } from 'lucide-react';
+import { User, Sun, Moon, LogOut, Eye, EyeOff, X, Trash2 } from 'lucide-react';
 
 const Header = ({ title }) => {
   const user = authService.getCurrentUser();
@@ -99,6 +99,22 @@ const Header = ({ title }) => {
       window.location.reload();
     } catch (err) {
       showToast('Error updating profile details', 'error');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmMessage = user.role.toUpperCase() === 'OWNER'
+      ? "WARNING: Deleting your owner account will permanently delete your entire shop data, including all flavours, tables, bills, orders, employees, and settings. This cannot be undone!\n\nAre you sure you want to proceed?"
+      : "Are you sure you want to permanently delete your account? This cannot be undone!";
+
+    if (window.confirm(confirmMessage)) {
+      try {
+        await authService.deleteAccount();
+        showToast('Your account was deleted successfully.', 'info');
+        navigate('/login');
+      } catch (err) {
+        showToast(err.response?.data || 'Failed to delete account.', 'error');
+      }
     }
   };
 
@@ -217,6 +233,27 @@ const Header = ({ title }) => {
                   <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowProfileModal(false)}>Cancel</button>
                   <button type="submit" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>Save changes</button>
                 </div>
+
+                <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '24px', paddingTop: '16px' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={handleDeleteAccount}
+                    style={{ 
+                      width: '100%', 
+                      background: 'rgba(239, 83, 80, 0.1)', 
+                      color: '#ef5350', 
+                      border: '1px solid rgba(239, 83, 80, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    <span>Delete Account</span>
+                  </button>
+                </div>
               </form>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -250,7 +287,7 @@ const Header = ({ title }) => {
                   </div>
                 </div>
 
-                <div style={{ marginTop: '16px' }}>
+                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <button 
                     type="button" 
                     className="btn btn-primary" 
@@ -258,6 +295,24 @@ const Header = ({ title }) => {
                     onClick={() => setShowProfileModal(false)}
                   >
                     Close Profile
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={handleDeleteAccount}
+                    style={{ 
+                      width: '100%', 
+                      background: 'rgba(239, 83, 80, 0.1)', 
+                      color: '#ef5350', 
+                      border: '1px solid rgba(239, 83, 80, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    <span>Delete Account</span>
                   </button>
                 </div>
               </div>
