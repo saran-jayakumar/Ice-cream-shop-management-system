@@ -66,6 +66,50 @@ const OwnerDashboard = () => {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showFlavourModal, setShowFlavourModal] = useState(false);
   const [currentFlavour, setCurrentFlavour] = useState({ flavourName: '', price: '', availability: true, imageUrl: '' });
+  const [empErrors, setEmpErrors] = useState({});
+
+  const validateEmployeeField = (field, value, fullEmployeeObject = null) => {
+    let error = '';
+    const emp = fullEmployeeObject || currentEmp;
+
+    if (field === 'employeeName') {
+      if (!value) {
+        error = 'Employee name is required';
+      } else if (value.trim().length < 3) {
+        error = 'Name must be at least 3 characters';
+      } else if (!/^[a-zA-Z\s]+$/.test(value)) {
+        error = 'Name must only contain letters and spaces';
+      }
+    } else if (field === 'emailPrefix') {
+      if (!value) {
+        error = 'Email prefix is required';
+      } else if (value.length < 3) {
+        error = 'Email prefix must be at least 3 characters';
+      } else if (!/^[a-z0-9._]+$/.test(value)) {
+        error = 'Prefix must only contain lowercase letters, numbers, dots, or underscores';
+      }
+    } else if (field === 'password') {
+      const isNew = !emp.id;
+      const isUpdatingPassword = changeEmpPassword;
+      if (isNew || isUpdatingPassword) {
+        if (!value) {
+          error = 'Password is required';
+        } else if (value.length < 6) {
+          error = 'Password must be at least 6 characters';
+        } else if (!/(?=.*[A-Za-z])(?=.*\d)/.test(value)) {
+          error = 'Password must contain at least one letter and one number';
+        }
+      }
+    } else if (field === 'salary') {
+      const val = parseFloat(value);
+      if (isNaN(val) || val <= 0) {
+        error = 'Salary must be a positive number greater than 0';
+      }
+    }
+
+    setEmpErrors(prev => ({ ...prev, [field]: error }));
+    return !error;
+  };
 
   // Search filter states
   const [empSearch, setEmpSearch] = useState('');
@@ -110,6 +154,20 @@ const OwnerDashboard = () => {
   // CRUD Employee actions
   const handleSaveEmployee = async (e) => {
     e.preventDefault();
+
+    const emailPrefix = (currentEmp.user?.email || '').replace('@onescoop.com', '');
+    const password = currentEmp.user?.password || '';
+
+    const isNameValid = validateEmployeeField('employeeName', currentEmp.employeeName);
+    const isEmailValid = validateEmployeeField('emailPrefix', emailPrefix);
+    const isPasswordValid = validateEmployeeField('password', password);
+    const isSalaryValid = validateEmployeeField('salary', currentEmp.salary);
+
+    if (!isNameValid || !isEmailValid || !isPasswordValid || !isSalaryValid) {
+      showToast('Please correct the validation errors first', 'error');
+      return;
+    }
+
     setLoading(true);
     const payload = {
       ...currentEmp,
@@ -131,7 +189,7 @@ const OwnerDashboard = () => {
       setShowEmpPassword(false);
       loadData();
     } catch (err) {
-      showToast('Error saving employee record', 'error');
+      showToast(err.response?.data?.message || 'Error saving employee record', 'error');
     } finally {
       setLoading(false);
     }
@@ -416,6 +474,7 @@ const OwnerDashboard = () => {
                   setChangeEmpPassword(true);
                   setShowEmpPassword(false);
                   setShowOldPassword(false);
+                  setEmpErrors({});
                   setShowEmpModal(true);
                 }} 
                 className="btn btn-primary"
@@ -469,6 +528,7 @@ const OwnerDashboard = () => {
                               setChangeEmpPassword(false);
                               setShowEmpPassword(false);
                               setShowOldPassword(false);
+                              setEmpErrors({});
                               setShowEmpModal(true);
                             }} 
                             className="btn btn-secondary" 
@@ -514,9 +574,18 @@ const OwnerDashboard = () => {
                         id="emp-name"
                         className="input-field"
                         value={currentEmp.employeeName}
-                        onChange={(e) => setCurrentEmp({ ...currentEmp, employeeName: e.target.value })}
+                        onChange={(e) => {
+                          setCurrentEmp({ ...currentEmp, employeeName: e.target.value });
+                          validateEmployeeField('employeeName', e.target.value);
+                        }}
                         required
+                        style={{ borderColor: empErrors.employeeName ? 'var(--color-danger)' : '' }}
                       />
+                      {empErrors.employeeName && (
+                        <div style={{ color: 'var(--color-danger)', fontSize: '12px', marginTop: '4px' }}>
+                          {empErrors.employeeName}
+                        </div>
+                      )}
                     </div>
                     <div className="form-group">
                       <label className="form-label" htmlFor="emp-pos">Role Position</label>
@@ -533,19 +602,51 @@ const OwnerDashboard = () => {
                     </div>
                     <div className="form-group">
                       <label className="form-label" htmlFor="emp-email">Login Email (ID)</label>
-                      <input
-                        type="email"
-                        id="emp-email"
-                        className="input-field"
-                        placeholder="e.g. name@onescoop.com"
-                        autoComplete="off"
-                        value={currentEmp.user?.email || ''}
-                        onChange={(e) => setCurrentEmp({
-                          ...currentEmp,
-                          user: { ...currentEmp.user, email: e.target.value }
-                        })}
-                        required
-                      />
+                      <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                        <input
+                          type="text"
+                          id="emp-email"
+                          className="input-field"
+                          autoComplete="off"
+                          value={(currentEmp.user?.email || '').replace(/@.*$/, '')}
+                          onChange={(e) => {
+                            const val = e.target.value.trim().toLowerCase().replace(/[^a-z0-9._]/g, '');
+                            setCurrentEmp({
+                              ...currentEmp,
+                              user: { ...currentEmp.user, email: val ? `${val}@onescoop.com` : '' }
+                            });
+                            validateEmployeeField('emailPrefix', val);
+                          }}
+                          required
+                          style={{ 
+                            borderTopRightRadius: 0, 
+                            borderBottomRightRadius: 0, 
+                            flex: 1,
+                            borderColor: empErrors.emailPrefix ? 'var(--color-danger)' : '' 
+                          }}
+                        />
+                        <span style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '0 16px',
+                          background: 'var(--border-color)',
+                          border: '1px solid var(--border-color)',
+                          borderLeft: 'none',
+                          borderTopRightRadius: '8px',
+                          borderBottomRightRadius: '8px',
+                          color: 'var(--text-muted)',
+                          fontWeight: 'var(--font-weight-semibold)',
+                          fontSize: '14px',
+                          userSelect: 'none'
+                        }}>
+                          @onescoop.com
+                        </span>
+                      </div>
+                      {empErrors.emailPrefix && (
+                        <div style={{ color: 'var(--color-danger)', fontSize: '12px', marginTop: '4px' }}>
+                          {empErrors.emailPrefix}
+                        </div>
+                      )}
                     </div>
                     {currentEmp.id ? (
                       !changeEmpPassword ? (
@@ -595,6 +696,7 @@ const OwnerDashboard = () => {
                               style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
                               onClick={() => {
                                 setChangeEmpPassword(false);
+                                setEmpErrors(prev => ({ ...prev, password: '' }));
                                 setCurrentEmp(prev => ({
                                   ...prev,
                                   user: { ...prev.user, password: '' }
@@ -609,14 +711,17 @@ const OwnerDashboard = () => {
                               type={showEmpPassword ? 'text' : 'password'}
                               id="emp-password"
                               className="input-field"
-                              placeholder="Type new password"
                               value={currentEmp.user?.password || ''}
-                              onChange={(e) => setCurrentEmp({
-                                ...currentEmp,
-                                user: { ...currentEmp.user, password: e.target.value }
-                              })}
-                              style={{ width: '100%', paddingRight: '44px' }}
+                              onChange={(e) => {
+                                setCurrentEmp({
+                                  ...currentEmp,
+                                  user: { ...currentEmp.user, password: e.target.value }
+                                });
+                                validateEmployeeField('password', e.target.value);
+                              }}
+                              style={{ width: '100%', paddingRight: '44px', borderColor: empErrors.password ? 'var(--color-danger)' : '' }}
                               required
+                              autoComplete="new-password"
                             />
                             <button 
                               type="button" 
@@ -634,6 +739,11 @@ const OwnerDashboard = () => {
                               {showEmpPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                           </div>
+                          {empErrors.password && (
+                            <div style={{ color: 'var(--color-danger)', fontSize: '12px', marginTop: '4px' }}>
+                              {empErrors.password}
+                            </div>
+                          )}
                         </div>
                       )
                     ) : (
@@ -644,14 +754,17 @@ const OwnerDashboard = () => {
                             type={showEmpPassword ? 'text' : 'password'}
                             id="emp-password"
                             className="input-field"
-                            placeholder="Type password"
                             value={currentEmp.user?.password || ''}
-                            onChange={(e) => setCurrentEmp({
-                              ...currentEmp,
-                              user: { ...currentEmp.user, password: e.target.value }
-                            })}
-                            style={{ width: '100%', paddingRight: '44px' }}
+                            onChange={(e) => {
+                              setCurrentEmp({
+                                ...currentEmp,
+                                user: { ...currentEmp.user, password: e.target.value }
+                              });
+                              validateEmployeeField('password', e.target.value);
+                            }}
+                            style={{ width: '100%', paddingRight: '44px', borderColor: empErrors.password ? 'var(--color-danger)' : '' }}
                             required
+                            autoComplete="new-password"
                           />
                           <button 
                             type="button" 
@@ -669,6 +782,11 @@ const OwnerDashboard = () => {
                             {showEmpPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         </div>
+                        {empErrors.password && (
+                          <div style={{ color: 'var(--color-danger)', fontSize: '12px', marginTop: '4px' }}>
+                            {empErrors.password}
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="form-group">
@@ -678,9 +796,19 @@ const OwnerDashboard = () => {
                         id="emp-sal"
                         className="input-field"
                         value={currentEmp.salary}
-                        onChange={(e) => setCurrentEmp({ ...currentEmp, salary: parseFloat(e.target.value) })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCurrentEmp({ ...currentEmp, salary: val === '' ? '' : parseFloat(val) });
+                          validateEmployeeField('salary', val);
+                        }}
                         required
+                        style={{ borderColor: empErrors.salary ? 'var(--color-danger)' : '' }}
                       />
+                      {empErrors.salary && (
+                        <div style={{ color: 'var(--color-danger)', fontSize: '12px', marginTop: '4px' }}>
+                          {empErrors.salary}
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                       <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowEmpModal(false)}>Cancel</button>

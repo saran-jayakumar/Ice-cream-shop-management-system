@@ -62,9 +62,10 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody AuthRequest authRequest) {
+        String email = authRequest.getEmail() != null ? authRequest.getEmail().trim().toLowerCase() : "";
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        authRequest.getEmail(),
+                        email,
                         authRequest.getPassword()
                 )
         );
@@ -75,7 +76,7 @@ public class AuthController {
                 authentication.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "")
         );
         
-        User user = userRepository.findByEmail(authRequest.getEmail()).orElseThrow();
+        User user = userRepository.findByEmail(email).orElseThrow();
         
         return ResponseEntity.ok(new AuthResponse(
                 jwt,
@@ -87,7 +88,13 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@RequestBody SignupRequest signupRequest) {
-        if (userRepository.findByEmail(signupRequest.getEmail()).isPresent()) {
+        if (signupRequest.getEmail() == null || !signupRequest.getEmail().toLowerCase().endsWith("@onescoop.com")) {
+            return ResponseEntity.badRequest().body("Error: Email must end with @onescoop.com");
+        }
+
+        String email = signupRequest.getEmail().trim().toLowerCase();
+
+        if (userRepository.findByEmail(email).isPresent()) {
             return ResponseEntity.badRequest().body("Error: Email is already in use!");
         }
 
@@ -97,7 +104,7 @@ public class AuthController {
 
         User user = new User(
                 signupRequest.getName(),
-                signupRequest.getEmail(),
+                email,
                 passwordEncoder.encode(signupRequest.getPassword()),
                 UserRole.OWNER
         );

@@ -23,13 +23,11 @@ const Header = ({ title }) => {
 
   // Theme states
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    return localStorage.getItem('theme') || 'dark';
   });
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);
 
@@ -203,7 +201,6 @@ const Header = ({ title }) => {
                     <input 
                       type={showPassword ? 'text' : 'password'} 
                       className="input-field" 
-                      placeholder="••••••••" 
                       value={editPassword} 
                       onChange={(e) => setEditPassword(e.target.value)} 
                       style={{ width: '100%', paddingRight: '44px' }}

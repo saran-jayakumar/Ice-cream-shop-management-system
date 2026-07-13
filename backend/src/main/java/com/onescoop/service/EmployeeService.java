@@ -55,6 +55,11 @@ public class EmployeeService {
         
         User user = employee.getUser();
         if (user != null) {
+            if (user.getEmail() == null || !user.getEmail().toLowerCase().endsWith("@onescoop.com")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email must end with @onescoop.com");
+            }
+            user.setEmail(user.getEmail().trim().toLowerCase());
+            
             // Check if email already exists
             Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
             if (existingUser.isPresent()) {
@@ -90,6 +95,13 @@ public class EmployeeService {
 
         User existingUser = employee.getUser();
         User detailsUser = employeeDetails.getUser();
+
+        if (detailsUser != null) {
+            if (detailsUser.getEmail() == null || !detailsUser.getEmail().toLowerCase().endsWith("@onescoop.com")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email must end with @onescoop.com");
+            }
+            detailsUser.setEmail(detailsUser.getEmail().trim().toLowerCase());
+        }
 
         if (existingUser != null && detailsUser != null) {
             // Update existing associated user account

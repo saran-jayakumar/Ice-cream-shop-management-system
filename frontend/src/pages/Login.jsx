@@ -61,17 +61,17 @@ const Login = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="off">
           <div className="form-group">
             <label className="form-label" htmlFor="email-input">Email Address</label>
             <input
               type="email"
               id="email-input"
               className="input-field"
-              placeholder="e.g. owner@onescoop.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value.toLowerCase())}
               required
+              autoComplete="off"
             />
           </div>
 
@@ -81,10 +81,10 @@ const Login = () => {
               type="password"
               id="password-input"
               className="input-field"
-              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="new-password"
             />
           </div>
 

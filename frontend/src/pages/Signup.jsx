@@ -6,22 +6,60 @@ import Spinner from '../components/Spinner';
 
 const Signup = () => {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [emailPrefix, setEmailPrefix] = useState('');
   const [password, setPassword] = useState('');
   const [role] = useState('OWNER');
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [errors, setErrors] = useState({});
   
   const navigate = useNavigate();
   const { showToast } = useToast();
 
+  const validateField = (field, value) => {
+    let error = '';
+    if (field === 'name') {
+      if (!value) {
+        error = 'Full name is required';
+      } else if (value.trim().length < 3) {
+        error = 'Name must be at least 3 characters';
+      } else if (!/^[a-zA-Z\s]+$/.test(value)) {
+        error = 'Name must only contain letters and spaces';
+      }
+    } else if (field === 'emailPrefix') {
+      if (!value) {
+        error = 'Email prefix is required';
+      } else if (value.length < 3) {
+        error = 'Email prefix must be at least 3 characters';
+      } else if (!/^[a-z0-9._]+$/.test(value)) {
+        error = 'Prefix must only contain lowercase letters, numbers, dots, or underscores';
+      }
+    } else if (field === 'password') {
+      if (!value) {
+        error = 'Password is required';
+      } else if (value.length < 6) {
+        error = 'Password must be at least 6 characters';
+      } else if (!/(?=.*[A-Za-z])(?=.*\d)/.test(value)) {
+        error = 'Password must contain at least one letter and one number';
+      }
+    }
+    setErrors(prev => ({ ...prev, [field]: error }));
+    return !error;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !email || !password || !role) {
-      showToast('Please fill in all fields', 'error');
+    
+    const isNameValid = validateField('name', name);
+    const isEmailPrefixValid = validateField('emailPrefix', emailPrefix);
+    const isPasswordValid = validateField('password', password);
+
+    if (!isNameValid || !isEmailPrefixValid || !isPasswordValid) {
+      showToast('Please correct the validation errors first', 'error');
       return;
     }
 
+    const email = `${emailPrefix.trim()}@onescoop.com`;
     setLoading(true);
     try {
       await authService.signup(name, email, password, role);
@@ -47,31 +85,72 @@ const Signup = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="off">
           <div className="form-group" style={{ marginBottom: '16px' }}>
             <label className="form-label" htmlFor="name-input">Full Name</label>
             <input
               type="text"
               id="name-input"
               className="input-field"
-              placeholder="e.g. John Doe"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                validateField('name', e.target.value);
+              }}
               required
+              style={{ borderColor: errors.name ? 'var(--color-danger)' : '' }}
             />
+            {errors.name && (
+              <div style={{ color: 'var(--color-danger)', fontSize: '12px', marginTop: '4px' }}>
+                {errors.name}
+              </div>
+            )}
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
             <label className="form-label" htmlFor="email-input">Email Address</label>
-            <input
-              type="email"
-              id="email-input"
-              className="input-field"
-              placeholder="e.g. name@onescoop.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div style={{ display: 'flex', alignItems: 'stretch' }}>
+              <input
+                type="text"
+                id="email-input"
+                className="input-field"
+                value={emailPrefix}
+                onChange={(e) => {
+                  const val = e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, '');
+                  setEmailPrefix(val);
+                  validateField('emailPrefix', val);
+                }}
+                required
+                autoComplete="off"
+                style={{ 
+                  borderTopRightRadius: 0, 
+                  borderBottomRightRadius: 0, 
+                  flex: 1,
+                  borderColor: errors.emailPrefix ? 'var(--color-danger)' : '' 
+                }}
+              />
+              <span style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 16px',
+                background: 'var(--border-color)',
+                border: '1px solid var(--border-color)',
+                borderLeft: 'none',
+                borderTopRightRadius: '8px',
+                borderBottomRightRadius: '8px',
+                color: 'var(--text-muted)',
+                fontWeight: 'var(--font-weight-semibold)',
+                fontSize: '14px',
+                userSelect: 'none'
+              }}>
+                @onescoop.com
+              </span>
+            </div>
+            {errors.emailPrefix && (
+              <div style={{ color: 'var(--color-danger)', fontSize: '12px', marginTop: '4px' }}>
+                {errors.emailPrefix}
+              </div>
+            )}
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -80,14 +159,21 @@ const Signup = () => {
               type="password"
               id="password-input"
               className="input-field"
-              placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                validateField('password', e.target.value);
+              }}
               required
+              autoComplete="new-password"
+              style={{ borderColor: errors.password ? 'var(--color-danger)' : '' }}
             />
+            {errors.password && (
+              <div style={{ color: 'var(--color-danger)', fontSize: '12px', marginTop: '4px' }}>
+                {errors.password}
+              </div>
+            )}
           </div>
-
-
 
           <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '14px', marginBottom: '16px' }}>
             Create Account
